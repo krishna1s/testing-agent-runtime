@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { opencodeAgentService } from '../../../../lib/opencode-agent-service'
 
 interface MessageRequest {
   message: string
@@ -16,7 +17,8 @@ interface MessagesListResponse {
   messages: MessageResponse[]
   total_messages: number
   task_id: string
-  sdk_used: boolean
+  server_connected: boolean
+  server_url?: string
 }
 
 export default async function handler(
@@ -37,111 +39,55 @@ export default async function handler(
         return res.status(400).json({ error: 'Message content is required' })
       }
 
-      try {
-        // Try to use OpenCode SDK
-        const { createOpencodeClient } = await import('@opencode-ai/sdk')
-        const client = createOpencodeClient()
+      // Send message using OpenCode Agent Service
+      const taskMessage = await opencodeAgentService.sendMessage(taskId, body.message)
 
-        // Send message to OpenCode session
-        const response = await client.session.prompt({
-          path: { id: taskId },
-          body: { 
-            parts: [{ type: 'text', text: body.message }]
-          }
-        })
-
-        if (!response.data) {
-          throw new Error('Failed to send message')
-        }
-
-        const assistantMessage = response.data.info
-        const parts = response.data.parts
-
-        // Extract content from parts
-        let content = ''
-        if (parts && parts.length > 0) {
-          for (const part of parts) {
-            if (part.type === 'text' && 'text' in part) {
-              content += part.text + '\n'
-            }
-          }
-        }
-
-        const messageResponse: MessageResponse = {
-          id: assistantMessage.id,
-          type: 'assistant',
-          content: content.trim() || 'Message received',
-          timestamp: new Date(assistantMessage.time.created).toISOString(),
-          task_id: taskId
-        }
-
-        res.status(201).json(messageResponse)
-
-      } catch (sdkError) {
-        console.error('OpenCode SDK error:', sdkError)
-        return res.status(500).json({
-          error: `Failed to send message via SDK: ${sdkError instanceof Error ? sdkError.message : String(sdkError)}`
-        })
+      const response: MessageResponse = {
+        id: taskMessage.id,
+        type: taskMessage.type,
+        content: taskMessage.content,
+        timestamp: taskMessage.timestamp.toISOString(),
+        task_id: taskId
       }
 
+      res.status(201).json(response)
     } catch (error) {
       console.error('Error sending message:', error)
+      
+      if (error instanceof Error && error.message.includes('Task not found')) {
+        return res.status(404).json({ error: `Task not found: ${taskId}` })
+      }
+      
       res.status(500).json({
         error: `Failed to send message: ${error instanceof Error ? error.message : String(error)}`
       })
     }
   } else if (req.method === 'GET') {
     try {
-      // Try to get messages using OpenCode SDK
-      const { createOpencodeClient } = await import('@opencode-ai/sdk')
-      const client = createOpencodeClient()
+      // Get all messages for the task using OpenCode Agent Service
+      const messages = await opencodeAgentService.getMessages(taskId)
 
-      const response = await client.session.messages({
-        path: { id: taskId }
-      })
+      const responseMessages: MessageResponse[] = messages.map(msg => ({
+        id: msg.id,
+        type: msg.type,
+        content: msg.content,
+        timestamp: msg.timestamp.toISOString(),
+        task_id: taskId
+      }))
 
-      if (!response.data) {
-        return res.status(200).json({
-          messages: [],
-          total_messages: 0,
-          task_id: taskId,
-          sdk_used: true
-        })
-      }
-
-      // Convert OpenCode messages to our format
-      const messages: MessageResponse[] = response.data.map((msgData: any) => {
-        let content = ''
-        if (msgData.parts && msgData.parts.length > 0) {
-          for (const part of msgData.parts) {
-            if (part.type === 'text' && 'text' in part) {
-              content += part.text + '\n'
-            }
-          }
-        }
-
-        return {
-          id: msgData.info.id,
-          type: msgData.info.role === 'user' ? 'user' : 'assistant',
-          content: content.trim() || 'Message received',
-          timestamp: new Date(msgData.info.time.created).toISOString(),
-          task_id: taskId
-        }
-      })
-
-      const messagesResponse: MessagesListResponse = {
-        messages,
-        total_messages: messages.length,
+      const response: MessagesListResponse = {
+        messages: responseMessages,
+        total_messages: responseMessages.length,
         task_id: taskId,
-        sdk_used: true
+        server_connected: opencodeAgentService.isConnected(),
+        server_url: opencodeAgentService.getServerUrl() || undefined
       }
 
-      res.status(200).json(messagesResponse)
-
+      res.status(200).json(response)
     } catch (error) {
       console.error('Error getting messages:', error)
       
-      if (error instanceof Error && error.message.includes('Session not found')) {
+      if (error instanceof Error && error.message.includes('Task not found')) {
         return res.status(404).json({ error: `Task not found: ${taskId}` })
       }
       
