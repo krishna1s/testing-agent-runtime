@@ -13,12 +13,15 @@ export default async function handler(
   if (req.method === 'GET') {
     try {
       // Try to import and test the OpenCode SDK
-      const { OpenCode } = await import('@opencode-ai/sdk')
+      const { createOpencodeClient } = await import('@opencode-ai/sdk')
+      
+      // Try to create a client
+      const client = createOpencodeClient()
       
       // Basic SDK test
       const response: OpenCodeTestResponse = {
         sdk_available: true,
-        version: 'SDK imported successfully'
+        version: 'SDK imported and client created successfully'
       }
       
       res.status(200).json(response)
