@@ -56,3 +56,13 @@ Thumbs.db
 /sessions/
 session_pool_results*
 clients/prd.md
+
+
+# Next.js
+/.next/
+/out/
+.next
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

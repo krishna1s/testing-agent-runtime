@@ -1,28 +1,54 @@
 {
-  "name": "testing-agent",
+  "name": "testing-agent-runtime",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Agent Runtime API for OpenCode with TypeScript and Next.js",
   "scripts": {
-    "setup": "sudo npm install -g opencode-ai && npm install && npx playwright install chromium && npx playwright install-deps chromium",
-    "setup:docker": "npm install -g opencode-ai && npm install && npx playwright install chromium && npx playwright install-deps chromium",
+    "dev": "next dev -p 5001",
+    "build": "next build",
+    "start": "next start -p 5001",
+    "dev:custom": "tsx watch server.ts",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "setup": "npm install && npx playwright install chromium && npx playwright install-deps chromium",
+    "setup:docker": "npm install && npx playwright install chromium && npx playwright install-deps chromium",
     "install-browsers": "npx playwright install chromium",
     "install-deps": "npx playwright install-deps chromium",
-    "verify": "opencode --version",
-    "dev": "python main.py"
+    "verify": "opencode --version"
   },
   "keywords": [
     "opencode",
     "playwright",
     "testing",
     "automation",
-    "api"
+    "api",
+    "nextjs",
+    "typescript"
   ],
   "author": "",
   "license": "ISC",
-  "description": "Agent Runtime API for OpenCode with Playwright MCP integration",
+  "dependencies": {
+    "@azure/storage-blob": "^12.17.0",
+    "@opencode-ai/sdk": "^0.10.3",
+    "multer": "^1.4.5-lts.1",
+    "next": "^15.5.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "socket.io": "^4.7.0",
+    "socket.io-client": "^4.7.0",
+    "uuid": "^9.0.0",
+    "ws": "^8.14.0"
+  },
   "devDependencies": {
-    "@playwright/mcp": "next",
-    "@playwright/test": "next",
-    "@types/node": "^24.3.0"
+    "@playwright/test": "^1.40.0",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "@types/uuid": "^9.0.0",
+    "@types/ws": "^8.5.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.0.0"
   }
 }
